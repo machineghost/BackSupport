@@ -1,6 +1,16 @@
 var BackSupport = (function() {
     'use strict';
 
+    var toSentence = function(array, separator, lastSeparator, serial) {
+        separator = separator || ', '
+        lastSeparator = lastSeparator || ' and '
+        var a = array.slice(), lastMember = a.pop();
+
+        if (array.length > 2 && serial) lastSeparator = _s.rtrim(separator) + lastSeparator;
+
+        return a.length ? a.join(separator) + lastSeparator + lastMember : lastMember;
+    };
+    
     var BackSupport = {};
     
     var assert = function(expression, message) {
@@ -164,7 +174,7 @@ var BackSupport = (function() {
         validateRequiredOptions: function() {
             if (!this.getRequiredOptions().length) return; // Nothing was required; we're done
             if (!this.options) console.log(this); // Help with debugging if the next assert fails
-            assert(this.options, "The '" + _.toSentence(this.getRequiredOptions()) +
+            assert(this.options, "The '" + toSentence(this.getRequiredOptions()) +
                                       "' options were required, but no options were provided!");
             _.each(this.getRequiredOptions(), function(requiredOption) {
                 var hadOption = !_.isUndefined(this.options[requiredOption]);
@@ -292,7 +302,7 @@ var BackSupport = (function() {
          */
         validateRequiredAttributes: function(actual, type) {
             if (!this.requiredAttributes.length) return; // Nothing was required; we're done
-            assert(actual, "The attributes " + _.toSentence(this.requiredAttributes) + " were " +
+            assert(actual, "The attributes " + toSentence(this.requiredAttributes) + " were " +
                            "required, but no attributes were provided!");
             var actualAttributes = _(actual).map_(function(value, name) {
                 // Filter out all attributes that were supplied, but with a value of undefined
