@@ -88,7 +88,7 @@ BackSupport provides a more convenient way to bind your methods to your class wi
     }
 
 
-** Events Property (for non-Views) **
+**Events Property (for non-Views)**
 
 Have you ever wished that you could define event handlerss on your collections and models using the same simple "events" property syntax that Backbone.View uses?  Well wish no longer, because BackSupport adds support for an events property on any BackSupport class:
 
@@ -96,7 +96,7 @@ Have you ever wished that you could define event handlerss on your collections a
         events: {'change:someAttribute', 'handleSomeAttributeChange'}
     }
 
-** Built-in Templating Support **
+**Built-in Templating Support**
 
 All BackSupport.View subclases come with a render method already defined.  This render method does two things:
 
