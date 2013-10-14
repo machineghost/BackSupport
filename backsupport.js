@@ -1,28 +1,35 @@
-Backbone.Grease = (function() {
+var BackSupport = (function() {
     'use strict';
 
     var Grease = {};
-
-    /**
-	 * Occasionally one might wish to use Backbone Grease functionality with an existing
-	 * Backbone Collection/Model/View.  Doing this requires "mixing-in" the prototype of
-	 * relevant Backbone.Grease class, ie:
-	 *     var GreasedGrid = Backgrid.Grid.extend(greasedViewPrototype).extend();
-	 * However, we don't want to use the actual prototype, as that could result in modifications to
-	 * other classes which also use that prototype; instead, we need a clone of the prototype.
-	 * 
-	 * This method generates clones of the original Grease mixin expressly for this purpose,
-	 * like so:
-	 *     var greasedViewPrototype = Backbone.Grease.Mixins('View');
-	 *     var GreasedGrid = Backgrid.Grid.extend(greasedViewPrototype).extend();
-	 */
-	Grease.Mixins = function(mixinName) {
-		return _({}).extend(Grease.Mixins[mixinName]);
-	};
     
     var assert = function(expression, message) {
         if (expression) return;
         throw new Error(message || 'Assertion failure');
+    };
+    
+    /**
+     * extend2 works similarly to Backbone's normal extend, except that for certain, specified
+     * properties (eg. events, defaults) it merges the property's value with the parents, rather
+     * than replacing it outright.
+     */
+    var extend2 = function(protoProps, staticProps) {
+        var child = Backbone.Model.extend.apply(this, arguments);
+        _(['attributes', 'defaults', 'events']).each(function(key) {
+            if (_(this.prototype[key]).isObject() && _(protoProps[key]).isObject()){
+                // Inherit instead of overwriting
+                child.prototype[key] = _({}).extend(this.prototype[key], protoProps[key]);
+            }
+         }, this);
+         
+        _(['boundMethods', 'propertyOptions', 'requiredAttributes', 'requiredOptions',
+           'templateDataOptions']).each(function(key) {
+            if (_(this.prototype[key]).isArray() && _(protoProps[key]).isArray()){
+                // Inherit instead of overwriting
+                child.prototype[key] = _(this.prototype[key]).union(protoProps[key]);
+            }
+         }, this);       
+        return child;
     };
 
     /**
@@ -37,8 +44,13 @@ Backbone.Grease = (function() {
      * TODO: Further documentation on this mix-in's functionality exists in BaseView (as much of it
      *       originally came from there).  Go take the relevant parts from there and put them here!
      */
-    Grease.Mixins.Common = {
-        boundMethods: [],
+    Grease.BaseCommon = {
+        /**
+         * Backbone.View has a great event-binding mechanism ("events"), which is handy for our
+         * other classes to use ... so we copy it here.  Thus, this events property is designed to
+         * work similarly (if not identically) to Backbone.View's events property.
+         */
+        events: {},
         /**
          * If a class has an "propertyOptions" property, this.options will be checked, and every
          * "property" option found in this.options will be set as a direct property of this view
@@ -75,6 +87,7 @@ Backbone.Grease = (function() {
             this.bindMethods();
             this.bindEvents();
         },
+        baseInitialize: $.noop, // TODO: Delete me
         /**
          * This method binds any event handlers specified in this.events, similarly to how
          * Backbone.View binds any event handlers specified in its "events" property.
@@ -142,7 +155,7 @@ Backbone.Grease = (function() {
          *     this.baz ... etc.
          */
         setPropertiesFromOptions: function() {
-            _(this).extend(_.pick(this.options, this.getPropertyOptions()));
+            _.extend(this, _.pick(this.options, this.getPropertyOptions()));
         },
         //validateOptions: this method can be "overwritten" (or, "written" at least) with a function
         //                 that returns a validation failure message if any options are "invalid"
@@ -186,7 +199,6 @@ Backbone.Grease = (function() {
         //       that don't wish to use the options functionality (eg. propertyOptions) can freely
         //       ignore it, and accept any set of arguments they want (eg. 5 integers) instead.
         this.options = options;
-        this.events = {};
         this.preInitialize.apply(this,arguments);
         if (this.initialize) this.initialize.apply(this, arguments);
     };
@@ -197,15 +209,12 @@ Backbone.Grease = (function() {
     Grease.BaseClass.extend = Backbone.Model.extend;
     // Add Backbone's event system to BaseClass
     // Also add our BaseCommon mix-in, and enable it's emulation of Backbone.Views event binding 
-    _(Grease.BaseClass.prototype).extend(Backbone.Events, Grease.Mixins('Common'),
-                                         {copyModelEventBinding: true});
+    _(Grease.BaseClass.prototype).extend(Backbone.Events, Grease.BaseCommon, {copyModelEventBinding: true});
 
     /**
      * In addition to having all of the BaseCommon functionality, this class also adds:
      * 
      * - requiredAttributes  (just like required options only applied to attributes)
-     *                       Alternatively, a requiredAttributes value of "true" will simply ensure
-     *                       that *some* attributes object (even an empty "{}" one) is provided
      * - Underscore methods  (kinda like Collection's Underscore methods, but these ones are applied
      *                       to this.attributes; currently the only methods are each, map, and pick)
      *                       TODO: Newer versions of Backbone have those methods built-in; upgrade
@@ -213,19 +222,13 @@ Backbone.Grease = (function() {
      * 
     */
     // .extend ... is for IE8.
-    Grease.Mixins.Model = _(Grease.Mixins('Common')).extend({
-        copyModelEventBinding: true, // Simulate Backbone.View's handling of the "events" property
-        /**
-         * Backbone.View has a great event-binding mechanism ("events"), which is handy for our
-         * other classes to use ... so we copy it here.  Thus, this events property is designed to
-         * work similarly (if not identically) to Backbone.View's events property.
-         */
-        events: {},
+    Grease.Model = Backbone.Model.extend(Grease.BaseCommon).extend({
         /**
          * If a model requires any attributes, this property can be overridden to include the names
          * of those attributes, and then this class will assert that they exist (on initialization).
          */
         requiredAttributes: [],
+        copyModelEventBinding: true, // Simulate Backbone.View's handling of the "events" property
 
         constructor: function(attributes, options) {
             this.preInitialize(options);
@@ -288,10 +291,7 @@ Backbone.Grease = (function() {
          * @param type
          */
         validateRequiredAttributes: function(actual, type) {
-            if (this.requiredAttributes.length || this.requiredAttributes === true) {
-                assert(!!actual, 'An attributes object (even if it is just "{}") is required');
-            }
-            if (!this.requiredAttributes.length) return; // An attributes object existed, we're done
+            if (!this.requiredAttributes.length) return; // Nothing was required; we're done
             assert(actual, "The attributes " + _.toSentence(this.requiredAttributes) + " were " +
                            "required, but no attributes were provided!");
             var actualAttributes = _(actual).map_(function(value, name) {
@@ -306,15 +306,9 @@ Backbone.Grease = (function() {
             });
         }
     });
-    Grease.Model = Backbone.Model.extend(Grease.Mixins('Model'));
-    Grease.Mixins.Collection = _(Grease.Mixins('Common')).extend({
+    
+    Grease.Collection = Backbone.Collection.extend(Grease.BaseCommon).extend({
         copyModelEventBinding: true, // Simulate Backbone.View's handling of the "events" property
-        /**
-         * Backbone.View has a great event-binding mechanism ("events"), which is handy for our
-         * other classes to use ... so we copy it here.  Thus, this events property is designed to
-         * work similarly (if not identically) to Backbone.View's events property.
-         */
-        events: {},
 
         constructor: function(models, options) {
             this.preInitialize(options);
@@ -330,9 +324,25 @@ Backbone.Grease = (function() {
         offOn: function(event, callback, context) {
             this.off(event, callback)
                 .on(event, callback, context);
+        },
+        /**
+         * Adds a check to make sure the api response was successful
+         * @method parse
+         * @private
+         * @param response {object} Response for the API on the server
+         */
+        parse: function(response)  {
+            // If we're not dealing with an old-school API then we don't need to do anything special
+            if (_(response.success).isUndefined()) return response;
+        
+            if (!response.success) {
+                this.trigger('error', this, response.error, {});
+                return null;
+            }
+            return response.data;
         }
     });
-    Grease.Collection = Backbone.Collection.extend(Grease.Mixins('Collection'));
+    
     /**
      * Some convenient things BaseView can do:
      * 
@@ -409,13 +419,14 @@ Backbone.Grease = (function() {
      *    you can just do:
      *        modelClass: FooClass
      */
-    Grease.Mixins.View = _(Grease.Mixins('Common')).extend({
+    // Calling extend twice due to: https://github.com/documentcloud/underscore/issues/1075
+    Grease.View = Backbone.View.extend(Grease.BaseCommon).extend({
         /**
          * Any method names included here will be bound to "this" ... if "this" actually has a
          * method with that name (that last part is relevant because bindAll gets very unhappy if
          * you try to have it bind methods that doesn't exist).
          */
-//            boundMethods: [],
+        boundMethods: [],
         
         /**
          * Indicates whether to merge the view's model with the tepmlate data before templating
@@ -462,7 +473,7 @@ Backbone.Grease = (function() {
          * view-specific, property options.
          */
         getPropertyOptions: function() {
-            var basePropertyOptions = Grease.Mixins.Common.getPropertyOptions.apply(this, arguments);
+            var basePropertyOptions = Grease.BaseCommon.getPropertyOptions.apply(this, arguments);
             return ['$container', 'template'].concat(basePropertyOptions);
         },
         getTemplate: function() {
@@ -526,42 +537,9 @@ Backbone.Grease = (function() {
             assert(this.model instanceof this.modelClass);
         }
     });
-    Grease.View = Backbone.View.extend(Grease.Mixins('View'));
-    // For now the Greased Router has no special logic except for the common Grease bits (eg.
-    // bound methods); in the future this class may gain additional functionality, such as
-    // methods for guarding against users accidentally navigating away from a page.
-    Grease.Mixins.Router = _(Grease.Mixins('Common')).extend({
-        constructor:function(options) {
-            this.preInitialize(options);
-            Backbone.Router.apply(this, arguments);
-        }
-    });
-    Grease.Router = Backbone.Router.extend(Grease.Mixins('Router'));
 
-    /**
-     * extend2 works similarly to Backbone's normal extend, except that for certain, specified
-     * properties (eg. events, defaults) it merges the property's value with the parents, rather
-     * than replacing it outright.
-     */
     Grease.BaseClass.extend2 = Grease.Collection.extend2 = Grease.Model.extend2 =
-    Grease.View.extend2 = function(protoProps, staticProps) {
-        var child = Backbone.Model.extend.apply(this, arguments);
-        _(['attributes', 'defaults', 'events']).each(function(key) {
-            if (_(this.prototype[key]).isObject() && _(protoProps[key]).isObject()){
-                // Inherit instead of overwriting
-                child.prototype[key] = _({}).extend(this.prototype[key], protoProps[key]);
-            }
-         }, this);
-
-        _(['boundMethods', 'propertyOptions', 'requiredAttributes', 'requiredOptions',
-           'templateDataOptions']).each(function(key) {
-            if (_(this.prototype[key]).isArray() && _(protoProps[key]).isArray()){
-                // Inherit instead of overwriting
-                child.prototype[key] = _(this.prototype[key]).union(protoProps[key]);
-            }
-         }, this);       
-        return child;
-    };
+                               Grease.View.extend2 = extend2;
     
     return Grease;
 } ());
