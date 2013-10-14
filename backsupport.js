@@ -1,7 +1,7 @@
 var BackSupport = (function() {
     'use strict';
 
-    var Grease = {};
+    var BackSupport = {};
     
     var assert = function(expression, message) {
         if (expression) return;
@@ -44,7 +44,7 @@ var BackSupport = (function() {
      * TODO: Further documentation on this mix-in's functionality exists in BaseView (as much of it
      *       originally came from there).  Go take the relevant parts from there and put them here!
      */
-    Grease.BaseCommon = {
+    BackSupport.BaseCommon = {
         /**
          * Backbone.View has a great event-binding mechanism ("events"), which is handy for our
          * other classes to use ... so we copy it here.  Thus, this events property is designed to
@@ -193,7 +193,7 @@ var BackSupport = (function() {
         }
     };
     
-    Grease.BaseClass = function(options) {
+    BackSupport.BaseClass = function(options) {
         // NOTE: BaseClass extends BaseCommon, and therefore has options-based functionality that
         //       expects a single "options" argument to be provided.  However, BaseClass subclasses 
         //       that don't wish to use the options functionality (eg. propertyOptions) can freely
@@ -206,10 +206,10 @@ var BackSupport = (function() {
     //       or Backbone.Collection.extend; they're all the same method, and since the "this" will
     //       be BaseClass in our case (and not a Backbone class) using this won't break anything.
     //       (If Backbone would just expose it's extend function we wouldn't have to bother ...)
-    Grease.BaseClass.extend = Backbone.Model.extend;
+    BackSupport.BaseClass.extend = Backbone.Model.extend;
     // Add Backbone's event system to BaseClass
     // Also add our BaseCommon mix-in, and enable it's emulation of Backbone.Views event binding 
-    _(Grease.BaseClass.prototype).extend(Backbone.Events, Grease.BaseCommon, {copyModelEventBinding: true});
+    _(BackSupport.BaseClass.prototype).extend(Backbone.Events, BackSupport.BaseCommon, {copyModelEventBinding: true});
 
     /**
      * In addition to having all of the BaseCommon functionality, this class also adds:
@@ -222,7 +222,7 @@ var BackSupport = (function() {
      * 
     */
     // .extend ... is for IE8.
-    Grease.Model = Backbone.Model.extend(Grease.BaseCommon).extend({
+    BackSupport.Model = Backbone.Model.extend(BackSupport.BaseCommon).extend({
         /**
          * If a model requires any attributes, this property can be overridden to include the names
          * of those attributes, and then this class will assert that they exist (on initialization).
@@ -307,7 +307,7 @@ var BackSupport = (function() {
         }
     });
     
-    Grease.Collection = Backbone.Collection.extend(Grease.BaseCommon).extend({
+    BackSupport.Collection = Backbone.Collection.extend(BackSupport.BaseCommon).extend({
         copyModelEventBinding: true, // Simulate Backbone.View's handling of the "events" property
 
         constructor: function(models, options) {
@@ -420,7 +420,7 @@ var BackSupport = (function() {
      *        modelClass: FooClass
      */
     // Calling extend twice due to: https://github.com/documentcloud/underscore/issues/1075
-    Grease.View = Backbone.View.extend(Grease.BaseCommon).extend({
+    BackSupport.View = Backbone.View.extend(BackSupport.BaseCommon).extend({
         /**
          * Any method names included here will be bound to "this" ... if "this" actually has a
          * method with that name (that last part is relevant because bindAll gets very unhappy if
@@ -473,7 +473,7 @@ var BackSupport = (function() {
          * view-specific, property options.
          */
         getPropertyOptions: function() {
-            var basePropertyOptions = Grease.BaseCommon.getPropertyOptions.apply(this, arguments);
+            var basePropertyOptions = BackSupport.BaseCommon.getPropertyOptions.apply(this, arguments);
             return ['$container', 'template'].concat(basePropertyOptions);
         },
         getTemplate: function() {
@@ -538,8 +538,8 @@ var BackSupport = (function() {
         }
     });
 
-    Grease.BaseClass.extend2 = Grease.Collection.extend2 = Grease.Model.extend2 =
-                               Grease.View.extend2 = extend2;
+    BackSupport.BaseClass.extend2 = BackSupport.Collection.extend2 = BackSupport.Model.extend2 =
+                                    BackSupport.View.extend2 = extend2;
     
-    return Grease;
+    return BackSupport;
 } ());
