@@ -119,7 +119,7 @@ What does all that mean?  It means you can make a view like so:
 
     // (and if we'd provided a $container we wouldn't even append our view to the DOM!)
 
-** Convenience Shortcuts **
+**Convenience Shortcuts**
 
 BackSupport provides several minor convenience features, such as ...
 
