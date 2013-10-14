@@ -87,6 +87,68 @@ BackSupport provides a more convenient way to bind your methods to your class wi
         boundMethods: ['method1', 'method2']
     }
 
+
+** Events Property (for non-Views) **
+
+Have you ever wished that you could define event handlerss on your collections and models using the same simple "events" property syntax that Backbone.View uses?  Well wish no longer, because BackSupport adds support for an events property on any BackSupport class:
+
+    BackSupport.Model.extend({
+        events: {'change:someAttribute', 'handleSomeAttributeChange'}
+    }
+
+** Built-in Templating Support **
+
+All BackSupport.View subclases come with a render method already defined.  This render method does two things:
+
+ * Apply the view's template to the view's element (ie. `this.$el.html(this.templatedHtml())`)
+ * Append the view to its `$container` property (if any)
+
+Out of the box BackSupport uses Underscore's template function to power it's templating, but you can use any third party templating system you want (eg. this author uses Handlebars) simply by overwriting the compileTemplate method.  Whichever template you use automatically has the view's "templateData" property, along with the view's model (if any)'s attributes and the view's collection (if any) available to the template.
+
+What does all that mean?  It means you can make a view like so:
+
+    var MyView = BackSupport.View.extend({
+        template: 'This is a <%= adjective %> view for <%= name %>',
+        templateData: {adjective: 'great'}
+    })
+    
+    var myView = new MyView({model: new Backbone.Model({name: 'Jeremy Ashkenas'});
+    myView.render();
+    
+    // myView.$el.html() = 'This is a great view for Jeremy Ashkenas'
+
+    // (and if we'd provided a $container we wouldn't even append our view to the DOM!)
+
+** Convenience Shortcuts **
+
+BackSupport provides several minor convenience features, such as ...
+
+... when you need to rebind an event handler:
+
+    // instead of this:
+    this.off('click').on('click', function() { ... 
+    // you can do:
+    this.offOn('click', function() { ... 
+
+... when you need to invoke a parent class method:
+
+    // instead of this:
+    ParentClass.prototype.someMethod.call(this, arg1, arg2);
+    // you can do:
+    this._proto(ParentClass, 'someMethod', arg1, arg2);
+    // (Yes that's only a five character savings, but every bit helps)
+
+.. when you want to set an attribute only if it hasn't already been set:
+
+    // instead of this:
+    if(!someModel.has('someAttribute')) {
+        someModel.set('someAttribute', someValue);
+    }
+    // or this:
+    someModel.set('someAttribute', someModel.get('someAttribute') || someValue);
+    // you can do:
+    someModel.setIfUnset('someAttribute', someValue);
+
 **Other Features**
 
 BackSupport contains a number of other great features, and documentation on them is coming soon.  In the meantime though feel free to look at the BackSupport source code, as I've tried to document each new feature as well as possible using JSDoc syntax.
