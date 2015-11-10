@@ -1,7 +1,7 @@
 BackSupport
 ===============
 
-A library that provides some "support" for Backbone (developed at, and with the support of, Syapse.com). 
+A library that provides some "support" for Backbone.  Developed at, and with the support of, Syapse.com. 
 
 
 BackSupport provides a set of new versions of the core Backbone Classes (Collection, Model, Router, and View), as well as a brand new "BaseClass", and a new extend2 function which supplements Backbone's built-in extend.
