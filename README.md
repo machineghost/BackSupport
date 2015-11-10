@@ -1,8 +1,6 @@
 BackSupport
 ===============
 
-(NOTE: BackSupport was very briefly called "Backbone.Grease", but was renamed in deference to the existing backbone-grease project by gsamokovarov.)
-
 A library that provides some "support" for Backbone (developed at, and with the support of, Syapse.com). 
 
 
