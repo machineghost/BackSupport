@@ -19,7 +19,7 @@ Not every class is a model or a view, so BackSupport.BaseClass allows you to use
 
 **extend2**
 
-One of the most frustrating things about Backbone is how it simulates classical inheritance when extending class methods, but not when extending class properties.  Thus, if your "A" View defined as "events" property, and then your "B" sub-class of A also defines an "events" property, B will lose all of A's events.  extend2 (which is available as a static method of every BackSupport class) allows properties like "events" to be extended rather than overwritten.
+One of the most frustrating things about Backbone is how it simulates classical inheritance when extending class methods, but not when extending class properties.  Thus, if your "A" View defined an "events" property, and then your "B" sub-class of A also defines an "events" property, B will lose all of A's events.  extend2 (which is available as a static method of every BackSupport class) allows properties like "events" to be extended rather than overwritten.
 However, it is important to note that if A and B both define a "click .foo" event, A's event will still be lost even with extend2.  extend2 simply performs an _.extend (instead of a pure replacement).
 You can use extend2 the same way you would normally use extend, ie.:
 
